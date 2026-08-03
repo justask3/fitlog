@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Fitness Log",
+    "slug": "fitness-log-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#E8F0E6"
+    },
+    "ios": { "supportsTablet": false },
+    "android": {
+      "package": "com.justinas.fitnesslog"
+    },
+    "plugins": ["expo-sqlite"]
+  }
+}
