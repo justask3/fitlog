@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionLabel: {
-    fontSize: 12,
+    ...typography.microLabel,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     marginTop: spacing.xs,

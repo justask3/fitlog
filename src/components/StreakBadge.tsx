@@ -16,7 +16,10 @@ export function StreakBadge({ days }: StreakBadgeProps) {
     <Card style={styles.row} accessibilityLabel={`${days} day streak`}>
       <Ionicons name="flame" size={22} color="#BA7517" style={styles.icon} />
       <View>
-        <Text style={styles.count}>{days} day streak</Text>
+        <Text>
+          <Text style={styles.count}>{days}</Text>
+          <Text style={styles.unit}> day{days === 1 ? "" : "s"} streak</Text>
+        </Text>
         <Text style={styles.subtext}>{message}</Text>
       </View>
     </Card>
@@ -32,11 +35,17 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   count: {
-    ...typography.value,
+    ...typography.hero,
     color: colors.textPrimary,
+  },
+  unit: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.textSecondary,
   },
   subtext: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 2,
   },
 });

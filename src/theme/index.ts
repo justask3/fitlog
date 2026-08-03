@@ -1,19 +1,20 @@
 /**
  * Design language — locked in as the source of truth for every screen.
- * Playful/sage direction: soft green background, flat white cards,
- * forest-green primary action. Any screen deviating from this should
- * be flagged, not silently drifted.
+ * Teal "stat-card" direction (replaces the earlier sage/playful one):
+ * light neutral background, floating white cards with shadow, a single
+ * saturated teal accent for CTAs/icons/hero numbers. Any screen deviating
+ * from this should be flagged, not silently drifted.
  */
 
 export const colors = {
-  background: "#E8F0E6",
+  background: "#F4F8F7",
   surface: "#FFFFFF",
-  primary: "#3B6D11",
-  primaryLight: "#97C459",
-  accentBorder: "#97C459",
-  textPrimary: "#1D3B2A",
-  textSecondary: "#5F5E5A",
-  textMuted: "#888780",
+  primary: "#0FB6C2",
+  primaryLight: "#B7ECEF",
+  accentBorder: "#0FB6C2",
+  textPrimary: "#1B2429",
+  textSecondary: "#5F6B70",
+  textMuted: "#8D9A9E",
   danger: "#A32D2D",
   white: "#FFFFFF",
 } as const;
@@ -37,4 +38,13 @@ export const typography = {
   body: { fontSize: 15, fontWeight: "400" as const },
   label: { fontSize: 12, fontWeight: "500" as const },
   value: { fontSize: 18, fontWeight: "500" as const },
+  // Uppercase, tracked section/field header — e.g. "RECENT WORKOUTS", "SIZE"
+  microLabel: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    letterSpacing: 0.8,
+    textTransform: "uppercase" as const,
+  },
+  // Big bold number for a hero stat (e.g. streak count)
+  hero: { fontSize: 32, fontWeight: "700" as const },
 };

@@ -26,7 +26,7 @@ export function PrCallout({
   return (
     <Card accent accessibilityLabel={`New personal record: ${exerciseName}`}>
       <View style={styles.header}>
-        <Ionicons name="trophy" size={18} color="#3B6D11" />
+        <Ionicons name="trophy" size={18} color={colors.primary} />
         <Text style={styles.headerText}>New heaviest yet</Text>
       </View>
       <Text style={styles.value}>
