@@ -47,7 +47,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" backgroundColor={colors.background} />
+      <StatusBar style="dark" />
       <RootNavigator />
     </QueryClientProvider>
   );

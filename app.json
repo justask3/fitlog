@@ -5,12 +5,18 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "splash": {
-      "backgroundColor": "#E8F0E6"
+    "ios": {
+      "supportsTablet": false
     },
-    "ios": { "supportsTablet": false },
     "android": {
       "package": "com.justinas.fitnesslog"
-    }
+    },
+    "plugins": ["expo-font"],
+    "extra": {
+      "eas": {
+        "projectId": "7116c550-5128-4d07-bd0a-08ef59f02c9b"
+      }
+    },
+    "owner": "wis0r"
   }
 }
