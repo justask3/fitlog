@@ -24,6 +24,7 @@ export const workouts = sqliteTable("workouts", {
   date: integer("date", { mode: "timestamp" }).notNull(),
   note: text("note"), // quick journal mode: freeform text, sets can be empty
   mode: text("mode").notNull().default("structured"), // 'quick' | 'structured'
+  durationSeconds: integer("duration_seconds"), // set only when logged in "duration" timer mode
   syncStatus: text("sync_status").notNull().default("pending"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
@@ -44,6 +45,19 @@ export const workoutSets = sqliteTable("workout_sets", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
+/**
+ * User-added Start-flow picker labels (custom workout types / muscle groups).
+ * Deliberately minimal — no sync columns, since these are local picker
+ * labels, not content bound for the eventual Supabase sync.
+ */
+export const customGroups = sqliteTable("custom_groups", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  kind: text("kind").notNull(), // 'type' | 'group'
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 export type Exercise = typeof exercises.$inferSelect;
+export type CustomGroup = typeof customGroups.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;
 export type WorkoutSet = typeof workoutSets.$inferSelect;

@@ -28,6 +28,7 @@ export async function initDatabase(): Promise<void> {
       date INTEGER NOT NULL,
       note TEXT,
       mode TEXT NOT NULL DEFAULT 'structured',
+      duration_seconds INTEGER,
       sync_status TEXT NOT NULL DEFAULT 'pending',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
@@ -45,6 +46,12 @@ export async function initDatabase(): Promise<void> {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       deleted_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS custom_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_sets_workout ON workout_sets(workout_id);
     CREATE INDEX IF NOT EXISTS idx_sets_exercise ON workout_sets(exercise_id);

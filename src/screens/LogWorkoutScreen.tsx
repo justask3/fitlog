@@ -8,15 +8,17 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useWorkoutDraft } from "@/store/useWorkoutDraft";
 import { useSaveWorkout } from "@/queries/workouts";
 import { Card } from "@/components/Card";
 import { NumericField } from "@/components/NumericField";
 import { PrCallout } from "@/components/PrCallout";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { WorkoutTimer } from "@/components/WorkoutTimer";
 import { colors, radius, spacing, typography } from "@/theme";
 import type { Exercise } from "@/db/schema";
+import type { TimerMode } from "@/components/StartWorkoutSheet";
 
 type ModeToggleProps = {
   mode: "quick" | "structured";
@@ -45,9 +47,15 @@ function ModeToggle({ mode, onChange }: ModeToggleProps) {
 
 export function LogWorkoutScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const timerMode: TimerMode = route.params?.timerMode ?? "none";
+  const { workoutType, muscleGroup } = route.params ?? {};
+  const initialCategory: string | undefined =
+    muscleGroup ?? (workoutType === "cardio" ? "cardio" : undefined);
   const draft = useWorkoutDraft();
   const saveWorkout = useSaveWorkout();
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(0);
   const [savedPrs, setSavedPrs] = useState<
     { exerciseName: string; weight: number; previousBest: number }[]
   >([]);
@@ -68,6 +76,7 @@ export function LogWorkoutScreen() {
         mode: draft.mode,
         note: draft.note,
         sets: draft.sets,
+        durationSeconds: timerMode === "duration" ? durationSeconds : undefined,
       });
       setSavedPrs(result.prs);
       draft.reset();
@@ -90,6 +99,10 @@ export function LogWorkoutScreen() {
         <Text style={styles.title}>Log a workout</Text>
 
         <ModeToggle mode={draft.mode} onChange={draft.setMode} />
+
+        {timerMode === "duration" && (
+          <WorkoutTimer mode="duration" onTick={setDurationSeconds} />
+        )}
 
         {savedPrs.map((pr) => (
           <PrCallout
@@ -115,6 +128,10 @@ export function LogWorkoutScreen() {
           </Card>
         ) : (
           <>
+            {timerMode === "rest" && draft.sets.length > 0 && (
+              <WorkoutTimer mode="rest" resetKey={draft.sets.length} />
+            )}
+
             {draft.sets.map((s) => (
               <Card key={s.localId}>
                 <View style={styles.setHeader}>
@@ -174,6 +191,7 @@ export function LogWorkoutScreen() {
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onSelect={handleAddExercise}
+        initialCategory={initialCategory}
       />
     </View>
   );

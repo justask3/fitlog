@@ -1,10 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { workouts, workoutSets, exercises } from "@/db/schema";
 import { runSync } from "@/sync/syncQueue";
 import type { DraftSet } from "@/store/useWorkoutDraft";
+
+export function formatRelativeDate(date: Date): string {
+  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
 
 export function useExercises() {
   return useQuery({
@@ -31,6 +38,29 @@ export function useRecentWorkouts(limit = 20) {
   });
 }
 
+/** One row per set logged in the last 7 days, with its exercise category, for the Home screen weekly chart. */
+export function useWeekActivity() {
+  return useQuery({
+    queryKey: ["workouts", "week-activity"],
+    queryFn: () => {
+      const sevenDaysAgo = new Date(Date.now() - 6 * 86_400_000);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      return db
+        .select({ date: workouts.date, category: exercises.category })
+        .from(workoutSets)
+        .innerJoin(workouts, eq(workoutSets.workoutId, workouts.id))
+        .innerJoin(exercises, eq(workoutSets.exerciseId, exercises.id))
+        .where(
+          and(
+            isNull(workoutSets.deletedAt),
+            isNull(workouts.deletedAt),
+            gte(workouts.date, sevenDaysAgo)
+          )
+        );
+    },
+  });
+}
+
 /** Best-ever weight for an exercise, used to detect PRs when saving a new set. */
 async function getBestWeightForExercise(exerciseId: string): Promise<number> {
   const rows = await db
@@ -46,6 +76,7 @@ type SaveWorkoutInput = {
   mode: "quick" | "structured";
   note: string;
   sets: DraftSet[];
+  durationSeconds?: number;
 };
 
 export type SaveWorkoutResult = {
@@ -71,6 +102,7 @@ export function useSaveWorkout() {
         date: now,
         note: input.note || null,
         mode: input.mode,
+        durationSeconds: input.durationSeconds ?? null,
         syncStatus: "pending",
         createdAt: now,
         updatedAt: now,

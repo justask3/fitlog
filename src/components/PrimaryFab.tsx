@@ -17,7 +17,7 @@ export function PrimaryFab({ onPress, accessibilityLabel }: PrimaryFabProps) {
       accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
     >
-      <Ionicons name="add" size={28} color={colors.white} />
+      <Ionicons name="play" size={24} color={colors.white} />
     </Pressable>
   );
 }

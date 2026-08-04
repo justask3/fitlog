@@ -17,7 +17,36 @@ export const colors = {
   textMuted: "#8D9A9E",
   danger: "#A32D2D",
   white: "#FFFFFF",
+  noActivity: "#E4ECEB",
 } as const;
+
+/**
+ * Fixed exercise-category palette, validated with the dataviz skill's
+ * validate_palette.js against this app's white card surface (adjacent-pair
+ * CVD gate for stacked bars). Order is the stacking/legend order — never
+ * re-sorted by value, since color here identifies the category, not its size.
+ */
+export const categoryOrder = [
+  "chest",
+  "legs",
+  "back",
+  "shoulders",
+  "triceps",
+  "biceps",
+  "core",
+  "cardio",
+] as const;
+
+export const categoryColors: Record<(typeof categoryOrder)[number], string> = {
+  chest: "#2a78d6",
+  legs: "#eb6834",
+  back: "#1baf7a",
+  shoulders: "#eda100",
+  triceps: "#e87ba4",
+  biceps: "#008300",
+  core: "#4a3aa7",
+  cardio: "#e34948",
+};
 
 export const radius = {
   card: 20,

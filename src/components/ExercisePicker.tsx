@@ -8,15 +8,24 @@ type ExercisePickerProps = {
   visible: boolean;
   onClose: () => void;
   onSelect: (exercise: Exercise) => void;
+  /** Pre-filter to this category until the user types a search query. */
+  initialCategory?: string;
 };
 
-export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerProps) {
+export function ExercisePicker({
+  visible,
+  onClose,
+  onSelect,
+  initialCategory,
+}: ExercisePickerProps) {
   const { data: exercises } = useExercises();
   const [query, setQuery] = useState("");
 
-  const filtered = (exercises ?? []).filter((e) =>
-    e.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = (exercises ?? []).filter((e) => {
+    if (query) return e.name.toLowerCase().includes(query.toLowerCase());
+    if (initialCategory) return e.category === initialCategory;
+    return true;
+  });
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -48,7 +57,11 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
             </Pressable>
           )}
           ListEmptyComponent={
-            <Text style={styles.empty}>No exercises match "{query}"</Text>
+            <Text style={styles.empty}>
+              {query
+                ? `No exercises match "${query}"`
+                : "No exercises in this category yet — try searching"}
+            </Text>
           }
         />
         <Pressable onPress={onClose} style={styles.closeButton} accessibilityRole="button">

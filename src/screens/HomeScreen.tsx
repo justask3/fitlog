@@ -1,75 +1,36 @@
 import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useRecentWorkouts } from "@/queries/workouts";
-import { Card } from "@/components/Card";
-import { StreakBadge } from "@/components/StreakBadge";
+import { View, ScrollView, StyleSheet } from "react-native";
+import { useRecentWorkouts, useWeekActivity } from "@/queries/workouts";
+import { ProfileBubble } from "@/components/ProfileBubble";
+import { LastActivityCard } from "@/components/LastActivityCard";
+import { WeeklyActivityChart } from "@/components/WeeklyActivityChart";
 import { PrimaryFab } from "@/components/PrimaryFab";
-import { colors, spacing, typography } from "@/theme";
-
-function formatRelativeDate(date: Date): string {
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
-}
-
-/** Consecutive-day streak, computed from distinct workout dates. */
-function computeStreak(dates: Date[]): number {
-  if (dates.length === 0) return 0;
-  const days = new Set(dates.map((d) => Math.floor(d.getTime() / 86_400_000)));
-  let streak = 0;
-  let cursor = Math.floor(Date.now() / 86_400_000);
-  while (days.has(cursor)) {
-    streak++;
-    cursor--;
-  }
-  return streak;
-}
+import { useStartFlow } from "@/store/useStartFlow";
+import { colors, spacing } from "@/theme";
 
 export function HomeScreen() {
-  const navigation = useNavigation<any>();
-  const { data: workouts, isLoading } = useRecentWorkouts();
-
-  const streak = computeStreak((workouts ?? []).map((w) => w.date));
+  const startFlow = useStartFlow();
+  const { data: recentWorkouts } = useRecentWorkouts(1);
+  const { data: weekActivity } = useWeekActivity();
 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.greeting}>Hey, Justinas</Text>
+        <ProfileBubble name="Justinas" />
 
-        <StreakBadge days={streak} />
+        <View style={styles.halfRow}>
+          <View style={styles.halfCard}>
+            <LastActivityCard workout={recentWorkouts?.[0]} />
+          </View>
+        </View>
 
-        <Text style={styles.sectionLabel}>Recent workouts</Text>
-
-        {isLoading && <Text style={styles.muted}>Loading…</Text>}
-
-        {!isLoading && (workouts ?? []).length === 0 && (
-          <Card accessibilityLabel="No workouts logged yet">
-            <Text style={styles.emptyTitle}>Start your first workout</Text>
-            <Text style={styles.muted}>
-              Tap the button below to log a set or a quick note.
-            </Text>
-          </Card>
-        )}
-
-        {(workouts ?? []).map((w) => (
-          <Card key={w.id}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.workoutTitle}>
-                {w.mode === "quick" ? "Quick log" : "Workout"}
-              </Text>
-              <Text style={styles.muted}>{formatRelativeDate(w.date)}</Text>
-            </View>
-            {w.note ? <Text style={styles.note}>{w.note}</Text> : null}
-          </Card>
-        ))}
+        <WeeklyActivityChart rows={weekActivity ?? []} />
       </ScrollView>
 
       <View style={styles.fabContainer}>
         <PrimaryFab
           accessibilityLabel="Log a workout"
-          onPress={() => navigation.navigate("LogWorkout")}
+          onPress={() => startFlow.start()}
         />
       </View>
     </View>
@@ -85,38 +46,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 100,
   },
-  greeting: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  sectionLabel: {
-    ...typography.microLabel,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  emptyTitle: {
-    ...typography.value,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  muted: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  rowBetween: {
+  halfRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
   },
-  workoutTitle: {
-    ...typography.body,
-    fontWeight: "500",
-    color: colors.textPrimary,
-  },
-  note: {
-    marginTop: spacing.xs,
-    color: colors.textSecondary,
+  halfCard: {
+    width: "50%",
+    paddingRight: spacing.sm,
   },
   fabContainer: {
     position: "absolute",
