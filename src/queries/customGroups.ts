@@ -14,7 +14,13 @@ export function useAddCustomGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, kind }: { name: string; kind: "type" | "group" }) => {
+    mutationFn: async ({
+      name,
+      kind,
+    }: {
+      name: string;
+      kind: "type" | "group" | "cardioActivity";
+    }) => {
       await db.insert(customGroups).values({
         id: Crypto.randomUUID(),
         name,

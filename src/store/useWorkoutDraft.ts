@@ -17,7 +17,7 @@ type WorkoutDraftState = {
   sets: DraftSet[];
   setMode: (mode: WorkoutMode) => void;
   setNote: (note: string) => void;
-  addSet: (exerciseId: string, exerciseName: string) => void;
+  addSet: (exerciseId: string, exerciseName: string, defaultUnit?: "lb" | "kg") => void;
   updateSet: (localId: string, patch: Partial<DraftSet>) => void;
   removeSet: (localId: string) => void;
   reset: () => void;
@@ -33,7 +33,7 @@ export const useWorkoutDraft = create<WorkoutDraftState>((set) => ({
   ...initialState,
   setMode: (mode) => set({ mode }),
   setNote: (note) => set({ note }),
-  addSet: (exerciseId, exerciseName) =>
+  addSet: (exerciseId, exerciseName, defaultUnit = "lb") =>
     set((state) => ({
       sets: [
         ...state.sets,
@@ -43,7 +43,7 @@ export const useWorkoutDraft = create<WorkoutDraftState>((set) => ({
           exerciseName,
           reps: "",
           weight: "",
-          weightUnit: "lb",
+          weightUnit: defaultUnit,
         },
       ],
     })),

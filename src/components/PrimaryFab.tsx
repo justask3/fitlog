@@ -1,7 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radius } from "@/theme";
+import { radius } from "@/theme";
+import { useTheme } from "@/theme/ThemeProvider";
 
 type PrimaryFabProps = {
   onPress: () => void;
@@ -10,6 +11,9 @@ type PrimaryFabProps = {
 
 /** The single primary action on the home screen — logging a workout. */
 export function PrimaryFab({ onPress, accessibilityLabel }: PrimaryFabProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
   return (
     <Pressable
       onPress={onPress}
@@ -22,22 +26,23 @@ export function PrimaryFab({ onPress, accessibilityLabel }: PrimaryFabProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});
+const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+  StyleSheet.create({
+    fab: {
+      width: 56,
+      height: 56,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+  });

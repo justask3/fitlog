@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Modal, View, Text, TextInput, Pressable, StyleSheet } from "react-native";
-import { colors, radius, spacing, typography } from "@/theme";
+import { radius, spacing } from "@/theme";
+import { useTheme } from "@/theme/ThemeProvider";
 
 export type PickerItem = { key: string; label: string; color: string };
 
@@ -9,7 +10,8 @@ type GroupPickerModalProps = {
   title: string;
   items: PickerItem[];
   onSelect: (key: string) => void;
-  onAddCustom: (name: string) => void;
+  /** Omit to hide the "Add custom" row entirely — e.g. a fixed-option picker like Goal. */
+  onAddCustom?: (name: string) => void;
   onClose: () => void;
 };
 
@@ -21,12 +23,14 @@ export function GroupPickerModal({
   onAddCustom,
   onClose,
 }: GroupPickerModalProps) {
+  const { colors, typography, fontFamily } = useTheme();
+  const styles = makeStyles(colors, typography, fontFamily);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
 
   const handleAdd = () => {
     const trimmed = name.trim();
-    if (trimmed) onAddCustom(trimmed);
+    if (trimmed && onAddCustom) onAddCustom(trimmed);
     setName("");
     setAdding(false);
   };
@@ -42,54 +46,52 @@ export function GroupPickerModal({
       <View style={styles.container}>
         <Text style={styles.title}>{title}</Text>
 
-        <View style={styles.grid}>
-          {adding ? (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.addInput}
-                placeholder="Name"
-                placeholderTextColor={colors.textMuted}
-                value={name}
-                onChangeText={setName}
-                autoFocus
-                accessibilityLabel="Custom name"
-              />
-              <Pressable
-                onPress={handleAdd}
-                accessibilityRole="button"
-                accessibilityLabel="Add"
-              >
-                <Text style={styles.addConfirm}>Add</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              style={styles.bubble}
-              onPress={() => setAdding(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Add custom"
-            >
-              <View style={[styles.circle, styles.addCircle]}>
-                <Text style={styles.addPlus}>+</Text>
+        <View style={styles.list}>
+          {onAddCustom &&
+            (adding ? (
+              <View style={styles.addForm}>
+                <TextInput
+                  style={styles.addInput}
+                  placeholder="Name"
+                  placeholderTextColor={colors.textMuted}
+                  value={name}
+                  onChangeText={setName}
+                  autoFocus
+                  accessibilityLabel="Custom name"
+                />
+                <Pressable
+                  onPress={handleAdd}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add"
+                >
+                  <Text style={styles.addConfirm}>Add</Text>
+                </Pressable>
               </View>
-              <Text style={styles.bubbleLabel}>Add</Text>
-            </Pressable>
-          )}
+            ) : (
+              <Pressable
+                style={styles.row}
+                onPress={() => setAdding(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Add custom"
+              >
+                <View style={styles.addDot}>
+                  <Text style={styles.addPlus}>+</Text>
+                </View>
+                <Text style={styles.rowLabel}>Add custom</Text>
+              </Pressable>
+            ))}
 
           {items.map((item) => (
             <Pressable
               key={item.key}
-              style={styles.bubble}
+              style={styles.row}
               onPress={() => onSelect(item.key)}
               accessibilityRole="button"
               accessibilityLabel={item.label}
             >
-              <View style={[styles.circle, { backgroundColor: item.color }]}>
-                <Text style={styles.circleLetters}>
-                  {item.label.slice(0, 2).toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.bubbleLabel}>{item.label}</Text>
+              <View style={[styles.dot, { backgroundColor: item.color }]} />
+              <Text style={styles.rowLabel}>{item.label}</Text>
+              <Text style={styles.chevron}>›</Text>
             </Pressable>
           ))}
         </View>
@@ -106,83 +108,96 @@ export function GroupPickerModal({
   );
 }
 
-const BUBBLE_SIZE = 64;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
-    paddingTop: 60,
-  },
-  title: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.lg,
-  },
-  bubble: {
-    width: 80,
-    alignItems: "center",
-  },
-  circle: {
-    width: BUBBLE_SIZE,
-    height: BUBBLE_SIZE,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  circleLetters: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  addCircle: {
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.primaryLight,
-    borderStyle: "dashed",
-  },
-  addPlus: {
-    color: colors.primary,
-    fontSize: 28,
-    fontWeight: "300",
-  },
-  bubbleLabel: {
-    ...typography.microLabel,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-    textAlign: "center",
-  },
-  addForm: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.md,
-    height: BUBBLE_SIZE,
-    width: "100%",
-  },
-  addInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  addConfirm: {
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  closeButton: {
-    alignItems: "center",
-    padding: spacing.md,
-    marginTop: "auto",
-  },
-  closeText: {
-    color: colors.primary,
-    fontWeight: "500",
-  },
-});
+const makeStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  typography: ReturnType<typeof useTheme>["typography"],
+  fontFamily: ReturnType<typeof useTheme>["fontFamily"]
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing.lg,
+      paddingTop: 60,
+    },
+    title: {
+      ...typography.title,
+      color: colors.textPrimary,
+      marginBottom: spacing.lg,
+    },
+    list: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.card,
+      overflow: "hidden",
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.background,
+    },
+    dot: {
+      width: 14,
+      height: 14,
+      borderRadius: radius.pill,
+      marginRight: spacing.md,
+    },
+    addDot: {
+      width: 14,
+      height: 14,
+      borderRadius: radius.pill,
+      marginRight: spacing.md,
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    addPlus: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: "700",
+      lineHeight: 10,
+    },
+    rowLabel: {
+      ...typography.body,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    chevron: {
+      color: colors.textMuted,
+      fontSize: 18,
+    },
+    addForm: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.background,
+    },
+    addInput: {
+      flex: 1,
+      fontSize: 16,
+      fontFamily,
+      color: colors.textPrimary,
+      paddingVertical: spacing.sm,
+    },
+    addConfirm: {
+      color: colors.primary,
+      fontWeight: "600",
+      fontFamily,
+    },
+    closeButton: {
+      alignItems: "center",
+      padding: spacing.md,
+      marginTop: "auto",
+    },
+    closeText: {
+      color: colors.primary,
+      fontWeight: "500",
+      fontFamily,
+    },
+  });

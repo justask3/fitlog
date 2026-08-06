@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Modal, View, Text, TextInput, FlatList, Pressable, StyleSheet } from "react-native";
 import { useExercises } from "@/queries/workouts";
-import { colors, radius, spacing, typography } from "@/theme";
+import { radius, spacing } from "@/theme";
+import { useTheme } from "@/theme/ThemeProvider";
 import type { Exercise } from "@/db/schema";
 
 type ExercisePickerProps = {
@@ -10,6 +11,8 @@ type ExercisePickerProps = {
   onSelect: (exercise: Exercise) => void;
   /** Pre-filter to this category until the user types a search query. */
   initialCategory?: string;
+  /** Pre-fill the search box with an exact exercise name (e.g. a cardio activity). */
+  initialQuery?: string;
 };
 
 export function ExercisePicker({
@@ -17,9 +20,12 @@ export function ExercisePicker({
   onClose,
   onSelect,
   initialCategory,
+  initialQuery,
 }: ExercisePickerProps) {
+  const { colors, typography, fontFamily } = useTheme();
+  const styles = makeStyles(colors, typography, fontFamily);
   const { data: exercises } = useExercises();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
 
   const filtered = (exercises ?? []).filter((e) => {
     if (query) return e.name.toLowerCase().includes(query.toLowerCase());
@@ -72,52 +78,62 @@ export function ExercisePicker({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
-    paddingTop: 60,
-  },
-  title: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  search: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.input,
-    height: 44,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-  },
-  row: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  rowText: {
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  rowCategory: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  empty: {
-    color: colors.textMuted,
-    textAlign: "center",
-    marginTop: spacing.xl,
-  },
-  closeButton: {
-    alignItems: "center",
-    padding: spacing.md,
-  },
-  closeText: {
-    color: colors.primary,
-    fontWeight: "500",
-  },
-});
+const makeStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  typography: ReturnType<typeof useTheme>["typography"],
+  fontFamily: ReturnType<typeof useTheme>["fontFamily"]
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing.lg,
+      paddingTop: 60,
+    },
+    title: {
+      ...typography.title,
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    search: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.input,
+      height: 44,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.md,
+      fontFamily,
+      color: colors.textPrimary,
+    },
+    row: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.card,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
+    rowText: {
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+    rowCategory: {
+      fontSize: 12,
+      fontFamily,
+      color: colors.textMuted,
+    },
+    empty: {
+      fontFamily,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: spacing.xl,
+    },
+    closeButton: {
+      alignItems: "center",
+      padding: spacing.md,
+    },
+    closeText: {
+      color: colors.primary,
+      fontWeight: "500",
+      fontFamily,
+    },
+  });

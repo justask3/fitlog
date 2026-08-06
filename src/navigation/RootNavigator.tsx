@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { TabNavigator } from "@/navigation/TabNavigator";
 import { LogWorkoutScreen } from "@/screens/LogWorkoutScreen";
-import type { TimerMode } from "@/components/StartWorkoutSheet";
+import type { TimerMode } from "@/queries/settings";
 
 export type RootStackParamList = {
   Tabs: undefined;
@@ -11,6 +11,7 @@ export type RootStackParamList = {
     timerMode: TimerMode;
     workoutType?: string | null;
     muscleGroup?: string | null;
+    cardioActivity?: string | null;
   };
 };
 
