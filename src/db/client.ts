@@ -53,6 +53,18 @@ export async function initDatabase(): Promise<void> {
       kind TEXT NOT NULL,
       created_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY,
+      theme_mode TEXT NOT NULL DEFAULT 'system',
+      weight_unit TEXT NOT NULL DEFAULT 'lb',
+      week_start TEXT NOT NULL DEFAULT 'sunday',
+      weight_increment REAL NOT NULL DEFAULT 5,
+      rest_timer_seconds INTEGER NOT NULL DEFAULT 90,
+      timer_mode TEXT NOT NULL DEFAULT 'none',
+      font_style TEXT NOT NULL DEFAULT 'default',
+      current_weight REAL,
+      goal_type TEXT
+    );
     CREATE INDEX IF NOT EXISTS idx_sets_workout ON workout_sets(workout_id);
     CREATE INDEX IF NOT EXISTS idx_sets_exercise ON workout_sets(exercise_id);
     CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts(date);

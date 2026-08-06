@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useFonts, PressStart2P_400Regular } from "@expo-google-fonts/press-start-2p";
 import { initDatabase } from "@/db/client";
 import { registerSyncListener } from "@/sync/syncQueue";
 import { RootNavigator } from "@/navigation/RootNavigator";
-import { colors } from "@/theme";
+import { ThemeModeProvider, useTheme } from "@/theme/ThemeProvider";
+import { lightColors } from "@/theme";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,9 +15,20 @@ const queryClient = new QueryClient({
   },
 });
 
+function ThemedApp() {
+  const { mode } = useTheme();
+  return (
+    <>
+      <StatusBar style={mode === "dark" ? "light" : "dark"} />
+      <RootNavigator />
+    </>
+  );
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [fontsLoaded] = useFonts({ PressStart2P_400Regular });
 
   useEffect(() => {
     initDatabase()
@@ -37,18 +50,19 @@ export default function App() {
     );
   }
 
-  if (!ready) {
+  if (!ready || !fontsLoaded) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={lightColors.primary} />
       </View>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
-      <RootNavigator />
+      <ThemeModeProvider>
+        <ThemedApp />
+      </ThemeModeProvider>
     </QueryClientProvider>
   );
 }
@@ -58,10 +72,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.background,
+    backgroundColor: lightColors.background,
   },
   errorText: {
-    color: colors.textPrimary,
+    color: lightColors.textPrimary,
     textAlign: "center",
     padding: 24,
   },

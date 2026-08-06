@@ -53,11 +53,29 @@ export const workoutSets = sqliteTable("workout_sets", {
 export const customGroups = sqliteTable("custom_groups", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  kind: text("kind").notNull(), // 'type' | 'group'
+  kind: text("kind").notNull(), // 'type' | 'group' | 'cardioActivity'
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+/**
+ * Single-row local preferences (id is always "singleton"). No sync columns —
+ * same reasoning as custom_groups: local settings, not synced content.
+ */
+export const settings = sqliteTable("settings", {
+  id: text("id").primaryKey(),
+  themeMode: text("theme_mode").notNull().default("system"), // 'system' | 'light' | 'dark'
+  weightUnit: text("weight_unit").notNull().default("lb"), // 'lb' | 'kg'
+  weekStart: text("week_start").notNull().default("sunday"), // 'sunday' | 'monday'
+  weightIncrement: real("weight_increment").notNull().default(5),
+  restTimerSeconds: integer("rest_timer_seconds").notNull().default(90),
+  timerMode: text("timer_mode").notNull().default("none"), // 'none' | 'duration' | 'rest'
+  fontStyle: text("font_style").notNull().default("default"), // 'default' | 'pixel'
+  currentWeight: real("current_weight"), // null = not set
+  goalType: text("goal_type"), // 'gain' | 'lose' | 'maintain' | null = not set
 });
 
 export type Exercise = typeof exercises.$inferSelect;
 export type CustomGroup = typeof customGroups.$inferSelect;
+export type Settings = typeof settings.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;
 export type WorkoutSet = typeof workoutSets.$inferSelect;
