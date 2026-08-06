@@ -70,19 +70,22 @@ export async function initDatabase(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts(date);
   `);
 
-  const existing = await db.query.exercises.findFirst();
-  if (!existing) {
-    const now = new Date();
-    for (const ex of STARTER_EXERCISES) {
-      await db.insert(schema.exercises).values({
-        id: ex.id,
-        name: ex.name,
-        category: ex.category,
-        isCustom: false,
-        syncStatus: "synced", // ships with the app, nothing to push
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
+  // Per-id, not "table empty" — so newly added starter exercises are picked
+  // up by existing installs without wiping the user's own data.
+  const existingIds = new Set(
+    (await db.select({ id: schema.exercises.id }).from(schema.exercises)).map((r) => r.id)
+  );
+  const now = new Date();
+  for (const ex of STARTER_EXERCISES) {
+    if (existingIds.has(ex.id)) continue;
+    await db.insert(schema.exercises).values({
+      id: ex.id,
+      name: ex.name,
+      category: ex.category,
+      isCustom: false,
+      syncStatus: "synced", // ships with the app, nothing to push
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 }
