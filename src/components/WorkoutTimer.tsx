@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Card } from "./Card";
-import { colors, spacing, typography } from "@/theme";
-
-const REST_SECONDS = 90;
+import { spacing } from "@/theme";
+import { useTheme } from "@/theme/ThemeProvider";
 
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -20,16 +19,20 @@ type RestTimerProps = {
   mode: "rest";
   /** Change this (e.g. to draft.sets.length) to restart the countdown. */
   resetKey: number;
+  /** Starting/reset countdown length, in seconds. */
+  restSeconds: number;
 };
 
 export function WorkoutTimer(props: DurationTimerProps | RestTimerProps) {
   if (props.mode === "duration") {
     return <DurationTimer onTick={props.onTick} />;
   }
-  return <RestTimer resetKey={props.resetKey} />;
+  return <RestTimer resetKey={props.resetKey} restSeconds={props.restSeconds} />;
 }
 
 function DurationTimer({ onTick }: { onTick: (seconds: number) => void }) {
+  const { colors, typography } = useTheme();
+  const styles = makeStyles(colors, typography);
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
@@ -49,11 +52,19 @@ function DurationTimer({ onTick }: { onTick: (seconds: number) => void }) {
   );
 }
 
-function RestTimer({ resetKey }: { resetKey: number }) {
-  const [remaining, setRemaining] = useState(REST_SECONDS);
+function RestTimer({
+  resetKey,
+  restSeconds,
+}: {
+  resetKey: number;
+  restSeconds: number;
+}) {
+  const { colors, typography } = useTheme();
+  const styles = makeStyles(colors, typography);
+  const [remaining, setRemaining] = useState(restSeconds);
 
   useEffect(() => {
-    setRemaining(REST_SECONDS);
+    setRemaining(restSeconds);
     const id = setInterval(() => {
       setRemaining((s) => {
         if (s <= 1) {
@@ -64,7 +75,7 @@ function RestTimer({ resetKey }: { resetKey: number }) {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [resetKey]);
+  }, [resetKey, restSeconds]);
 
   return (
     <Card accessibilityLabel={`Rest timer: ${formatClock(remaining)} remaining`}>
@@ -85,23 +96,27 @@ function RestTimer({ resetKey }: { resetKey: number }) {
   );
 }
 
-const styles = StyleSheet.create({
-  label: {
-    ...typography.microLabel,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  clock: {
-    ...typography.hero,
-    color: colors.textPrimary,
-  },
-  restRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  skip: {
-    color: colors.primary,
-    fontWeight: "500",
-  },
-});
+const makeStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  typography: ReturnType<typeof useTheme>["typography"]
+) =>
+  StyleSheet.create({
+    label: {
+      ...typography.microLabel,
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+    clock: {
+      ...typography.hero,
+      color: colors.textPrimary,
+    },
+    restRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    skip: {
+      color: colors.primary,
+      fontWeight: "500",
+    },
+  });

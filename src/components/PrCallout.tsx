@@ -2,7 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "./Card";
-import { colors, spacing, typography } from "@/theme";
+import { spacing } from "@/theme";
+import { useTheme } from "@/theme/ThemeProvider";
 
 type PrCalloutProps = {
   exerciseName: string;
@@ -21,6 +22,8 @@ export function PrCallout({
   previousBest,
   weightUnit = "lb",
 }: PrCalloutProps) {
+  const { colors, typography, fontFamily } = useTheme();
+  const styles = makeStyles(colors, typography, fontFamily);
   const delta = weight - previousBest;
 
   return (
@@ -37,23 +40,29 @@ export function PrCallout({
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.xs,
-    gap: spacing.xs,
-  },
-  headerText: {
-    ...typography.label,
-    color: colors.textPrimary,
-  },
-  value: {
-    ...typography.value,
-    color: colors.textPrimary,
-  },
-  delta: {
-    fontSize: 13,
-    color: colors.primary,
-  },
-});
+const makeStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  typography: ReturnType<typeof useTheme>["typography"],
+  fontFamily: ReturnType<typeof useTheme>["fontFamily"]
+) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.xs,
+      gap: spacing.xs,
+    },
+    headerText: {
+      ...typography.label,
+      color: colors.textPrimary,
+    },
+    value: {
+      ...typography.value,
+      color: colors.textPrimary,
+    },
+    delta: {
+      fontSize: 13,
+      fontFamily,
+      color: colors.primary,
+    },
+  });

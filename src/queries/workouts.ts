@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
-import { and, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { workouts, workoutSets, exercises } from "@/db/schema";
 import { runSync } from "@/sync/syncQueue";
@@ -25,16 +25,37 @@ export function useExercises() {
   });
 }
 
-export function useRecentWorkouts(limit = 20) {
+const KG_TO_LB = 2.20462;
+
+/** Average per-workout volume (sum of weight x reps), normalized to `unit` since sets can be logged in mixed units. */
+export function useAverageVolume(unit: "lb" | "kg" = "lb") {
   return useQuery({
-    queryKey: ["workouts", "recent", limit],
-    queryFn: () =>
-      db
-        .select()
-        .from(workouts)
-        .where(isNull(workouts.deletedAt))
-        .orderBy(desc(workouts.date))
-        .limit(limit),
+    queryKey: ["workouts", "average-volume", unit],
+    queryFn: async () => {
+      const rows = await db
+        .select({
+          workoutId: workoutSets.workoutId,
+          weight: workoutSets.weight,
+          reps: workoutSets.reps,
+          weightUnit: workoutSets.weightUnit,
+        })
+        .from(workoutSets)
+        .innerJoin(workouts, eq(workoutSets.workoutId, workouts.id))
+        .where(and(isNull(workoutSets.deletedAt), isNull(workouts.deletedAt)));
+
+      const totals = new Map<string, number>();
+      for (const r of rows) {
+        const weight = r.weight ?? 0;
+        const reps = r.reps ?? 0;
+        const normalized =
+          r.weightUnit === unit ? weight : r.weightUnit === "kg" ? weight * KG_TO_LB : weight / KG_TO_LB;
+        totals.set(r.workoutId, (totals.get(r.workoutId) ?? 0) + normalized * reps);
+      }
+
+      const values = [...totals.values()];
+      if (values.length === 0) return 0;
+      return values.reduce((sum, v) => sum + v, 0) / values.length;
+    },
   });
 }
 
