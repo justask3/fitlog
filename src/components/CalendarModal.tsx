@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useCalendarActivity } from "@/queries/calendar";
 import { useSettings } from "@/queries/settings";
 import { getMonthsWindow, buildCategoriesByDay, type WeekStart } from "@/lib/calendarGrid";
 import { useScrollToCurrentMonth } from "@/lib/useScrollToCurrentMonth";
 import { CalendarMonthSection } from "@/components/CalendarMonthSection";
+import { DayDetailModal } from "@/components/DayDetailModal";
 import { spacing } from "@/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -19,6 +20,7 @@ export function CalendarModal({ visible, onClose }: CalendarModalProps) {
   const { data: rows } = useCalendarActivity();
   const { data: settingsRow } = useSettings();
   const weekStart = (settingsRow?.weekStart as WeekStart) ?? "sunday";
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const safeRows = rows ?? [];
   const categoriesByDay = useMemo(() => buildCategoriesByDay(safeRows), [safeRows]);
@@ -49,6 +51,7 @@ export function CalendarModal({ visible, onClose }: CalendarModalProps) {
                   month={month}
                   weekStart={weekStart}
                   categoriesByDay={categoriesByDay}
+                  onDayPress={setSelectedDay}
                 />
               </View>
             );
@@ -61,6 +64,8 @@ export function CalendarModal({ visible, onClose }: CalendarModalProps) {
           </Text>
         </View>
       </View>
+
+      <DayDetailModal epoch={selectedDay} onClose={() => setSelectedDay(null)} />
     </Modal>
   );
 }

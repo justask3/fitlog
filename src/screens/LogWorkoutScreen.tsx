@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { useWorkoutDraft } from "@/store/useWorkoutDraft";
+import type { DraftSet } from "@/store/useWorkoutDraft";
 import { useSaveWorkout } from "@/queries/workouts";
 import { useSettings } from "@/queries/settings";
 import { Card } from "@/components/Card";
@@ -17,6 +19,7 @@ import { StepperField } from "@/components/StepperField";
 import { PrCallout } from "@/components/PrCallout";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { WorkoutTimer } from "@/components/WorkoutTimer";
+import { MONTH_NAMES } from "@/lib/calendarGrid";
 import { radius, spacing } from "@/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { Exercise } from "@/db/schema";
@@ -48,13 +51,115 @@ function ModeToggle({ mode, onChange, styles }: ModeToggleProps) {
   );
 }
 
+type ExerciseLogCardProps = {
+  exerciseName: string;
+  sets: DraftSet[];
+  weightUnit: "lb" | "kg";
+  weightIncrement: number;
+  onCommitSet: (weight: number, reps: number) => void;
+  onRemoveSet: (localId: string) => void;
+  onRemoveExercise: () => void;
+  styles: ReturnType<typeof makeStyles>;
+};
+
+function ExerciseLogCard({
+  exerciseName,
+  sets,
+  weightUnit,
+  weightIncrement,
+  onCommitSet,
+  onRemoveSet,
+  onRemoveExercise,
+  styles,
+}: ExerciseLogCardProps) {
+  const { colors } = useTheme();
+  const [weight, setWeight] = useState(0);
+  const [reps, setReps] = useState(0);
+
+  return (
+    <Card>
+      <View style={styles.setHeader}>
+        <Text style={styles.exerciseName}>{exerciseName}</Text>
+        <Pressable
+          onPress={onRemoveExercise}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${exerciseName}`}
+        >
+          <Text style={styles.remove}>Remove</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.fieldStack}>
+        <StepperField
+          label="Weight"
+          suffix={weightUnit}
+          value={weight}
+          step={weightIncrement}
+          decimals={Number.isInteger(weightIncrement) ? 0 : 1}
+          onChange={setWeight}
+        />
+        <StepperField label="Reps" value={reps} step={1} onChange={setReps} />
+      </View>
+
+      <View style={styles.saveClearRow}>
+        <Pressable
+          style={styles.saveSetButton}
+          onPress={() => onCommitSet(weight, reps)}
+          accessibilityRole="button"
+          accessibilityLabel={`Save set for ${exerciseName}`}
+        >
+          <Text style={styles.saveSetText}>Save</Text>
+        </Pressable>
+        <Pressable
+          style={styles.clearSetButton}
+          onPress={() => {
+            setWeight(0);
+            setReps(0);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Clear inputs"
+        >
+          <Text style={styles.clearSetText}>Clear</Text>
+        </Pressable>
+      </View>
+
+      {sets.length === 0 ? (
+        <Text style={styles.emptySets}>No sets logged yet</Text>
+      ) : (
+        <View style={styles.setList}>
+          {sets.map((s, i) => (
+            <View key={s.localId} style={styles.setRow}>
+              <View style={styles.setBadge}>
+                <Text style={styles.setBadgeText}>{i + 1}</Text>
+              </View>
+              <Text style={styles.setValue}>
+                {s.weight} <Text style={styles.setUnit}>{s.weightUnit}</Text>
+              </Text>
+              <Text style={styles.setValue}>{s.reps} reps</Text>
+              <Pressable
+                onPress={() => onRemoveSet(s.localId)}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove set ${i + 1}`}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={16} color={colors.textMuted} />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
 export function LogWorkoutScreen() {
   const { colors, typography, fontFamily } = useTheme();
   const styles = makeStyles(colors, typography, fontFamily);
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const timerMode: TimerMode = route.params?.timerMode ?? "none";
-  const { workoutType, muscleGroup, cardioActivity } = route.params ?? {};
+  const { workoutType, muscleGroup, cardioActivity, initialExerciseId, initialExerciseName, date } =
+    route.params ?? {};
   const initialCategory: string | undefined =
     muscleGroup ?? (workoutType === "cardio" && !cardioActivity ? "cardio" : undefined);
   const { data: settingsRow } = useSettings();
@@ -69,8 +174,31 @@ export function LogWorkoutScreen() {
     { exerciseName: string; weight: number; previousBest: number }[]
   >([]);
 
+  // Arriving from the Exercise List screen with a pre-picked exercise —
+  // land already showing its card instead of blank. Re-navigating here
+  // (e.g. after going back to pick a different exercise) reuses this same
+  // screen instance and just updates params, so this re-runs per pick;
+  // addExercise is idempotent, so re-picking the same one is a no-op.
+  useEffect(() => {
+    if (initialExerciseId && initialExerciseName) {
+      draft.addExercise(initialExerciseId, initialExerciseName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialExerciseId, initialExerciseName]);
+
+  // `date` is epoch-ms at UTC midnight of the tapped calendar day (see
+  // lib/calendarGrid.ts's epoch scheme) — read with UTC getters so this
+  // matches DayDetailModal's date label exactly, regardless of local timezone.
+  const dateLabel =
+    date != null
+      ? (() => {
+          const d = new Date(date);
+          return `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+        })()
+      : null;
+
   const handleAddExercise = (exercise: Exercise) => {
-    draft.addSet(exercise.id, exercise.name, defaultWeightUnit);
+    draft.addExercise(exercise.id, exercise.name);
     setPickerVisible(false);
   };
 
@@ -86,11 +214,12 @@ export function LogWorkoutScreen() {
         note: draft.note,
         sets: draft.sets,
         durationSeconds: timerMode === "duration" ? durationSeconds : undefined,
+        date: date != null ? new Date(date) : undefined,
       });
       setSavedPrs(result.prs);
       draft.reset();
       if (result.prs.length === 0) {
-        navigation.goBack();
+        navigation.popToTop();
       }
       // If there are PRs, stay on screen briefly to show the celebration
       // before the user navigates away themselves.
@@ -105,7 +234,20 @@ export function LogWorkoutScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Log a workout</Text>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={styles.title}>Log a workout</Text>
+            {dateLabel && <Text style={styles.dateSubtitle}>for {dateLabel}</Text>}
+          </View>
+          <Pressable
+            onPress={() => navigation.popToTop()}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
+          </Pressable>
+        </View>
 
         <ModeToggle mode={draft.mode} onChange={draft.setMode} styles={styles} />
 
@@ -145,35 +287,20 @@ export function LogWorkoutScreen() {
               />
             )}
 
-            {draft.sets.map((s) => (
-              <Card key={s.localId}>
-                <View style={styles.setHeader}>
-                  <Text style={styles.exerciseName}>{s.exerciseName}</Text>
-                  <Pressable
-                    onPress={() => draft.removeSet(s.localId)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove ${s.exerciseName}`}
-                  >
-                    <Text style={styles.remove}>Remove</Text>
-                  </Pressable>
-                </View>
-                <View style={styles.fieldStack}>
-                  <StepperField
-                    label="Weight"
-                    suffix={s.weightUnit}
-                    value={parseFloat(s.weight) || 0}
-                    step={weightIncrement}
-                    decimals={Number.isInteger(weightIncrement) ? 0 : 1}
-                    onChange={(v) => draft.updateSet(s.localId, { weight: String(v) })}
-                  />
-                  <StepperField
-                    label="Reps"
-                    value={parseInt(s.reps, 10) || 0}
-                    step={1}
-                    onChange={(v) => draft.updateSet(s.localId, { reps: String(v) })}
-                  />
-                </View>
-              </Card>
+            {draft.exercises.map((ex) => (
+              <ExerciseLogCard
+                key={ex.exerciseId}
+                exerciseName={ex.exerciseName}
+                sets={draft.sets.filter((s) => s.exerciseId === ex.exerciseId)}
+                weightUnit={defaultWeightUnit}
+                weightIncrement={weightIncrement}
+                onCommitSet={(weight, reps) =>
+                  draft.commitSet(ex.exerciseId, ex.exerciseName, weight, reps, defaultWeightUnit)
+                }
+                onRemoveSet={draft.removeSet}
+                onRemoveExercise={() => draft.removeExercise(ex.exerciseId)}
+                styles={styles}
+              />
             ))}
 
             <Pressable
@@ -225,10 +352,20 @@ const makeStyles = (
       padding: spacing.lg,
       paddingBottom: 100,
     },
+    titleRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
     title: {
       ...typography.title,
       color: colors.textPrimary,
-      marginBottom: spacing.md,
+    },
+    dateSubtitle: {
+      ...typography.microLabel,
+      color: colors.textSecondary,
+      marginTop: 2,
     },
     toggleRow: {
       flexDirection: "row",
@@ -282,6 +419,77 @@ const makeStyles = (
     },
     fieldStack: {
       flexDirection: "column",
+    },
+    saveClearRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    saveSetButton: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      borderRadius: radius.card,
+      paddingVertical: spacing.sm,
+      alignItems: "center",
+    },
+    saveSetText: {
+      color: colors.white,
+      fontWeight: "600",
+      fontFamily,
+    },
+    clearSetButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.primaryLight,
+      borderRadius: radius.card,
+      paddingVertical: spacing.sm,
+      alignItems: "center",
+    },
+    clearSetText: {
+      color: colors.textSecondary,
+      fontWeight: "600",
+      fontFamily,
+    },
+    emptySets: {
+      ...typography.microLabel,
+      color: colors.textMuted,
+      textAlign: "center",
+      paddingVertical: spacing.sm,
+    },
+    setList: {
+      borderTopWidth: 1,
+      borderTopColor: colors.background,
+      paddingTop: spacing.xs,
+    },
+    setRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.xs,
+      gap: spacing.sm,
+    },
+    setBadge: {
+      width: 22,
+      height: 22,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    setBadgeText: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: "700",
+      fontFamily,
+    },
+    setValue: {
+      ...typography.body,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    setUnit: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontFamily,
     },
     addExerciseButton: {
       borderWidth: 1,

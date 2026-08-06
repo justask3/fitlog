@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import {
   MONTH_NAMES,
   buildMonthGrid,
@@ -17,13 +17,15 @@ type CalendarMonthSectionProps = {
   month: number;
   weekStart: WeekStart;
   categoriesByDay: Map<number, string[]>;
+  onDayPress?: (epoch: number) => void;
 };
 
-export function CalendarMonthSection({
+export const CalendarMonthSection = React.memo(function CalendarMonthSection({
   year,
   month,
   weekStart,
   categoriesByDay,
+  onDayPress,
 }: CalendarMonthSectionProps) {
   const { colors, categoryColors, typography, fontFamily } = useTheme();
   const styles = makeStyles(colors, typography, fontFamily);
@@ -44,43 +46,49 @@ export function CalendarMonthSection({
       </View>
       {buildMonthGrid(year, month, weekStart).map((week, wi) => (
         <View key={wi} style={styles.weekRow}>
-          {week.map((cell, ci) => (
-            <View key={ci} style={styles.dayCell}>
-              {cell && (
-                <>
-                  <Text
-                    style={[
-                      styles.dayNumber,
-                      cell.epoch === todayEpoch && styles.dayNumberToday,
-                    ]}
-                  >
-                    {cell.day}
-                  </Text>
-                  <View style={styles.dotsRow}>
-                    {(categoriesByDay.get(cell.epoch) ?? [])
-                      .slice(0, MAX_DOTS)
-                      .map((category, di) => (
-                        <View
-                          key={di}
-                          style={[
-                            styles.dot,
-                            {
-                              backgroundColor:
-                                categoryColors[category as keyof typeof categoryColors],
-                            },
-                          ]}
-                        />
-                      ))}
-                  </View>
-                </>
-              )}
-            </View>
-          ))}
+          {week.map((cell, ci) =>
+            cell ? (
+              <Pressable
+                key={ci}
+                style={styles.dayCell}
+                onPress={() => onDayPress?.(cell.epoch)}
+                accessibilityRole="button"
+                accessibilityLabel={`${MONTH_NAMES[month]} ${cell.day}, ${year}`}
+              >
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    cell.epoch === todayEpoch && styles.dayNumberToday,
+                  ]}
+                >
+                  {cell.day}
+                </Text>
+                <View style={styles.dotsRow}>
+                  {(categoriesByDay.get(cell.epoch) ?? [])
+                    .slice(0, MAX_DOTS)
+                    .map((category, di) => (
+                      <View
+                        key={di}
+                        style={[
+                          styles.dot,
+                          {
+                            backgroundColor:
+                              categoryColors[category as keyof typeof categoryColors],
+                          },
+                        ]}
+                      />
+                    ))}
+                </View>
+              </Pressable>
+            ) : (
+              <View key={ci} style={styles.dayCell} />
+            )
+          )}
         </View>
       ))}
     </View>
   );
-}
+});
 
 const makeStyles = (
   colors: ReturnType<typeof useTheme>["colors"],

@@ -98,6 +98,8 @@ type SaveWorkoutInput = {
   note: string;
   sets: DraftSet[];
   durationSeconds?: number;
+  /** Backdates the workout's logical date (e.g. filling in a missed day from the calendar); defaults to now. */
+  date?: Date;
 };
 
 export type SaveWorkoutResult = {
@@ -120,7 +122,7 @@ export function useSaveWorkout() {
 
       await db.insert(workouts).values({
         id: workoutId,
-        date: now,
+        date: input.date ?? now,
         note: input.note || null,
         mode: input.mode,
         durationSeconds: input.durationSeconds ?? null,
@@ -157,6 +159,7 @@ export function useSaveWorkout() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workouts"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
       runSync(); // fire-and-forget; no-op if offline
     },
   });

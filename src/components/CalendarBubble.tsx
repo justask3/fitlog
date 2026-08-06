@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card } from "./Card";
 import { CalendarModal } from "./CalendarModal";
 import { CalendarMonthSection } from "./CalendarMonthSection";
+import { DayDetailModal } from "./DayDetailModal";
 import { useCalendarActivity } from "@/queries/calendar";
 import { useSettings } from "@/queries/settings";
 import { getMonthsWindow, buildCategoriesByDay, type WeekStart } from "@/lib/calendarGrid";
@@ -17,6 +18,7 @@ export function CalendarBubble() {
   const { colors, typography } = useTheme();
   const styles = makeStyles(colors, typography);
   const [visible, setVisible] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const { data: rows } = useCalendarActivity();
   const { data: settingsRow } = useSettings();
@@ -41,7 +43,7 @@ export function CalendarBubble() {
           </Pressable>
         </View>
 
-        {/* Pure scroll area — no nested Pressables, so every touch here is a drag, never a tap-to-open. */}
+        {/* Dragging still scrolls as normal — day cells only respond to a quick tap. */}
         <ScrollView ref={scrollRef} style={styles.preview} nestedScrollEnabled>
           {monthsToShow.map(({ year, month }) => {
             const key = `${year}-${month}`;
@@ -52,6 +54,7 @@ export function CalendarBubble() {
                   month={month}
                   weekStart={weekStart}
                   categoriesByDay={categoriesByDay}
+                  onDayPress={setSelectedDay}
                 />
               </View>
             );
@@ -60,6 +63,7 @@ export function CalendarBubble() {
       </Card>
 
       <CalendarModal visible={visible} onClose={() => setVisible(false)} />
+      <DayDetailModal epoch={selectedDay} onClose={() => setSelectedDay(null)} />
     </>
   );
 }

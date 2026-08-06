@@ -10,7 +10,6 @@ import { GroupPickerModal } from "@/components/GroupPickerModal";
 import { useStartFlow } from "@/store/useStartFlow";
 import { useCustomGroups, useAddCustomGroup } from "@/queries/customGroups";
 import { useSettings } from "@/queries/settings";
-import { categoryOrder } from "@/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export type TabParamList = {
@@ -22,10 +21,12 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 /**
- * Owns the Start flow's modals (Workout Type -> Muscle Group/Cardio
- * Activity), triggered from HomeScreen's FAB via the shared useStartFlow
- * store. The flow navigates straight to Log Workout once a terminal choice
- * is made — timer mode comes from Settings, not a per-workout choice.
+ * Owns the Start flow's "Workout type" modal (Strength/Cardio/custom),
+ * triggered from HomeScreen's FAB (or a calendar day's "Add workout") via
+ * the shared useStartFlow store. Strength/Cardio push real stack screens
+ * (Muscle Group / Cardio Activity, see RootNavigator) so back navigation
+ * genuinely steps back through the choices made; a custom type navigates
+ * straight to Log Workout, same as today.
  */
 export function TabNavigator() {
   const { colors, categoryColors } = useTheme();
@@ -38,12 +39,6 @@ export function TabNavigator() {
   const customTypeNames = (customEntries ?? [])
     .filter((g) => g.kind === "type")
     .map((g) => g.name);
-  const customGroupNames = (customEntries ?? [])
-    .filter((g) => g.kind === "group")
-    .map((g) => g.name);
-  const customCardioActivityNames = (customEntries ?? [])
-    .filter((g) => g.kind === "cardioActivity")
-    .map((g) => g.name);
 
   const typeItems = [
     { key: "strength", label: "Strength", color: colors.primary },
@@ -54,54 +49,21 @@ export function TabNavigator() {
       color: colors.textSecondary,
     })),
   ];
-  const groupItems = [
-    ...categoryOrder
-      .filter((c) => c !== "cardio")
-      .map((c) => ({ key: c, label: c, color: categoryColors[c] })),
-    ...customGroupNames.map((name) => ({
-      key: name,
-      label: name,
-      color: colors.textSecondary,
-    })),
-  ];
-  const cardioActivityItems = [
-    { key: "Running", label: "Running", color: categoryColors.cardio },
-    { key: "Cycling", label: "Cycling", color: categoryColors.cardio },
-    ...customCardioActivityNames.map((name) => ({
-      key: name,
-      label: name,
-      color: colors.textSecondary,
-    })),
-  ];
-
-  const goToLogWorkout = (extra: {
-    workoutType: string | null;
-    muscleGroup?: string | null;
-    cardioActivity?: string | null;
-  }) => {
-    navigation.navigate("LogWorkout", {
-      timerMode: settingsRow?.timerMode ?? "none",
-      ...extra,
-    });
-    flow.reset();
-  };
 
   const handleTypeSelect = (type: string) => {
-    if (type === "strength" || type === "cardio") {
-      flow.selectType(type);
+    const date = flow.targetDate ?? undefined;
+    if (type === "strength") {
+      navigation.navigate("MuscleGroup", { workoutType: type, date });
+    } else if (type === "cardio") {
+      navigation.navigate("CardioActivity", { workoutType: type, date });
     } else {
-      goToLogWorkout({ workoutType: type });
+      navigation.navigate("LogWorkout", {
+        timerMode: settingsRow?.timerMode ?? "none",
+        workoutType: type,
+        date,
+      });
     }
-  };
-
-  const handleGroupSelect = (group: string) => {
-    flow.setMuscleGroup(group);
-    goToLogWorkout({ workoutType: flow.workoutType, muscleGroup: group });
-  };
-
-  const handleCardioActivitySelect = (activity: string) => {
-    flow.setCardioActivity(activity);
-    goToLogWorkout({ workoutType: flow.workoutType, cardioActivity: activity });
+    flow.close();
   };
 
   return (
@@ -151,31 +113,7 @@ export function TabNavigator() {
           addCustom.mutate({ name, kind: "type" });
           handleTypeSelect(name);
         }}
-        onClose={flow.cancel}
-      />
-
-      <GroupPickerModal
-        visible={flow.step === "group"}
-        title="Muscle group"
-        items={groupItems}
-        onSelect={handleGroupSelect}
-        onAddCustom={(name) => {
-          addCustom.mutate({ name, kind: "group" });
-          handleGroupSelect(name);
-        }}
-        onClose={flow.cancel}
-      />
-
-      <GroupPickerModal
-        visible={flow.step === "cardioActivity"}
-        title="Cardio activity"
-        items={cardioActivityItems}
-        onSelect={handleCardioActivitySelect}
-        onAddCustom={(name) => {
-          addCustom.mutate({ name, kind: "cardioActivity" });
-          handleCardioActivitySelect(name);
-        }}
-        onClose={flow.cancel}
+        onClose={flow.close}
       />
     </View>
   );
