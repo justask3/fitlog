@@ -11,21 +11,24 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useWorkoutDraft } from "@/store/useWorkoutDraft";
 import { useSaveWorkout } from "@/queries/workouts";
+import { useSettings } from "@/queries/settings";
 import { Card } from "@/components/Card";
-import { NumericField } from "@/components/NumericField";
+import { StepperField } from "@/components/StepperField";
 import { PrCallout } from "@/components/PrCallout";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { WorkoutTimer } from "@/components/WorkoutTimer";
-import { colors, radius, spacing, typography } from "@/theme";
+import { radius, spacing } from "@/theme";
+import { useTheme } from "@/theme/ThemeProvider";
 import type { Exercise } from "@/db/schema";
-import type { TimerMode } from "@/components/StartWorkoutSheet";
+import type { TimerMode } from "@/queries/settings";
 
 type ModeToggleProps = {
   mode: "quick" | "structured";
   onChange: (mode: "quick" | "structured") => void;
+  styles: ReturnType<typeof makeStyles>;
 };
 
-function ModeToggle({ mode, onChange }: ModeToggleProps) {
+function ModeToggle({ mode, onChange, styles }: ModeToggleProps) {
   return (
     <View style={styles.toggleRow}>
       {(["structured", "quick"] as const).map((m) => (
@@ -46,12 +49,18 @@ function ModeToggle({ mode, onChange }: ModeToggleProps) {
 }
 
 export function LogWorkoutScreen() {
+  const { colors, typography, fontFamily } = useTheme();
+  const styles = makeStyles(colors, typography, fontFamily);
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const timerMode: TimerMode = route.params?.timerMode ?? "none";
-  const { workoutType, muscleGroup } = route.params ?? {};
+  const { workoutType, muscleGroup, cardioActivity } = route.params ?? {};
   const initialCategory: string | undefined =
-    muscleGroup ?? (workoutType === "cardio" ? "cardio" : undefined);
+    muscleGroup ?? (workoutType === "cardio" && !cardioActivity ? "cardio" : undefined);
+  const { data: settingsRow } = useSettings();
+  const defaultWeightUnit = (settingsRow?.weightUnit as "lb" | "kg") ?? "lb";
+  const restSeconds = settingsRow?.restTimerSeconds ?? 90;
+  const weightIncrement = settingsRow?.weightIncrement ?? 5;
   const draft = useWorkoutDraft();
   const saveWorkout = useSaveWorkout();
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -61,7 +70,7 @@ export function LogWorkoutScreen() {
   >([]);
 
   const handleAddExercise = (exercise: Exercise) => {
-    draft.addSet(exercise.id, exercise.name);
+    draft.addSet(exercise.id, exercise.name, defaultWeightUnit);
     setPickerVisible(false);
   };
 
@@ -98,7 +107,7 @@ export function LogWorkoutScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Log a workout</Text>
 
-        <ModeToggle mode={draft.mode} onChange={draft.setMode} />
+        <ModeToggle mode={draft.mode} onChange={draft.setMode} styles={styles} />
 
         {timerMode === "duration" && (
           <WorkoutTimer mode="duration" onTick={setDurationSeconds} />
@@ -129,7 +138,11 @@ export function LogWorkoutScreen() {
         ) : (
           <>
             {timerMode === "rest" && draft.sets.length > 0 && (
-              <WorkoutTimer mode="rest" resetKey={draft.sets.length} />
+              <WorkoutTimer
+                mode="rest"
+                resetKey={draft.sets.length}
+                restSeconds={restSeconds}
+              />
             )}
 
             {draft.sets.map((s) => (
@@ -144,20 +157,20 @@ export function LogWorkoutScreen() {
                     <Text style={styles.remove}>Remove</Text>
                   </Pressable>
                 </View>
-                <View style={styles.fieldRow}>
-                  <NumericField
+                <View style={styles.fieldStack}>
+                  <StepperField
                     label="Weight"
-                    value={s.weight}
-                    onChangeText={(v) => draft.updateSet(s.localId, { weight: v })}
                     suffix={s.weightUnit}
-                    placeholder="0"
+                    value={parseFloat(s.weight) || 0}
+                    step={weightIncrement}
+                    decimals={Number.isInteger(weightIncrement) ? 0 : 1}
+                    onChange={(v) => draft.updateSet(s.localId, { weight: String(v) })}
                   />
-                  <View style={{ width: spacing.md }} />
-                  <NumericField
+                  <StepperField
                     label="Reps"
-                    value={s.reps}
-                    onChangeText={(v) => draft.updateSet(s.localId, { reps: v })}
-                    placeholder="0"
+                    value={parseInt(s.reps, 10) || 0}
+                    step={1}
+                    onChange={(v) => draft.updateSet(s.localId, { reps: String(v) })}
                   />
                 </View>
               </Card>
@@ -192,99 +205,110 @@ export function LogWorkoutScreen() {
         onClose={() => setPickerVisible(false)}
         onSelect={handleAddExercise}
         initialCategory={initialCategory}
+        initialQuery={cardioActivity ?? undefined}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: 100,
-  },
-  title: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  toggleRow: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
-    padding: 4,
-    marginBottom: spacing.lg,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: "center",
-    borderRadius: radius.pill,
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.primaryLight,
-  },
-  toggleText: {
-    color: colors.textSecondary,
-    fontWeight: "500",
-  },
-  toggleTextActive: {
-    color: colors.textPrimary,
-  },
-  label: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  noteInput: {
-    minHeight: 100,
-    textAlignVertical: "top",
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  setHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  exerciseName: {
-    ...typography.value,
-    color: colors.textPrimary,
-  },
-  remove: {
-    color: colors.danger,
-    fontSize: 13,
-  },
-  fieldRow: {
-    flexDirection: "row",
-  },
-  addExerciseButton: {
-    borderWidth: 1,
-    borderColor: colors.primaryLight,
-    borderRadius: radius.card,
-    padding: spacing.md,
-    alignItems: "center",
-  },
-  addExerciseText: {
-    color: colors.primary,
-    fontWeight: "500",
-  },
-  saveButton: {
-    position: "absolute",
-    bottom: spacing.xl,
-    left: spacing.lg,
-    right: spacing.lg,
-    backgroundColor: colors.primary,
-    borderRadius: radius.card,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  saveButtonText: {
-    color: colors.white,
-    fontWeight: "500",
-    fontSize: 16,
-  },
-});
+const makeStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  typography: ReturnType<typeof useTheme>["typography"],
+  fontFamily: ReturnType<typeof useTheme>["fontFamily"]
+) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: 100,
+    },
+    title: {
+      ...typography.title,
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    toggleRow: {
+      flexDirection: "row",
+      backgroundColor: colors.surface,
+      borderRadius: radius.pill,
+      padding: 4,
+      marginBottom: spacing.lg,
+    },
+    toggleButton: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: "center",
+      borderRadius: radius.pill,
+    },
+    toggleButtonActive: {
+      backgroundColor: colors.primaryLight,
+    },
+    toggleText: {
+      color: colors.textSecondary,
+      fontWeight: "500",
+      fontFamily,
+    },
+    toggleTextActive: {
+      color: colors.textPrimary,
+    },
+    label: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    noteInput: {
+      minHeight: 100,
+      textAlignVertical: "top",
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily,
+    },
+    setHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    exerciseName: {
+      ...typography.value,
+      color: colors.textPrimary,
+    },
+    remove: {
+      color: colors.danger,
+      fontSize: 13,
+      fontFamily,
+    },
+    fieldStack: {
+      flexDirection: "column",
+    },
+    addExerciseButton: {
+      borderWidth: 1,
+      borderColor: colors.primaryLight,
+      borderRadius: radius.card,
+      padding: spacing.md,
+      alignItems: "center",
+    },
+    addExerciseText: {
+      color: colors.primary,
+      fontWeight: "500",
+      fontFamily,
+    },
+    saveButton: {
+      position: "absolute",
+      bottom: spacing.xl,
+      left: spacing.lg,
+      right: spacing.lg,
+      backgroundColor: colors.primary,
+      borderRadius: radius.card,
+      paddingVertical: spacing.md,
+      alignItems: "center",
+    },
+    saveButtonText: {
+      color: colors.white,
+      fontWeight: "500",
+      fontFamily,
+      fontSize: 16,
+    },
+  });
