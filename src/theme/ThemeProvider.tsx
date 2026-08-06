@@ -39,19 +39,25 @@ export function ThemeModeProvider({ children }: { children: React.ReactNode }) {
     themeMode === "system" ? (systemScheme === "dark" ? "dark" : "light") : themeMode;
   const fontStyle: FontStyle = (settingsRow?.fontStyle as FontStyle) ?? "default";
 
+  // `updateSettings.mutate` is a stable callback from React Query; the
+  // mutation result object itself is not, and including it directly here
+  // would recreate `value` (and cascade a re-render through every consumer
+  // in the app) on every render of this provider, not just when the
+  // resolved theme actually changes.
+  const mutate = updateSettings.mutate;
   const value = useMemo<ThemeContextValue>(
     () => ({
       colors: mode === "dark" ? darkColors : lightColors,
       categoryColors: mode === "dark" ? darkCategoryColors : lightCategoryColors,
       mode,
       themeMode,
-      setThemeMode: (next) => updateSettings.mutate({ themeMode: next }),
+      setThemeMode: (next) => mutate({ themeMode: next }),
       typography: fontStyle === "pixel" ? pixelTypography : defaultTypography,
       fontStyle,
-      setFontStyle: (next) => updateSettings.mutate({ fontStyle: next }),
+      setFontStyle: (next) => mutate({ fontStyle: next }),
       fontFamily: fontStyle === "pixel" ? PIXEL_FONT : undefined,
     }),
-    [mode, themeMode, fontStyle, updateSettings]
+    [mode, themeMode, fontStyle, mutate]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

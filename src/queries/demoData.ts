@@ -73,6 +73,7 @@ export function useGenerateDemoWorkouts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workouts"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
     },
   });
 }
